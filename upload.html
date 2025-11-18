@@ -1,1 +1,147 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin – Trabalhos (com Upload)</title>
 
+<style>
+  body { background:#111; color:#fff; font-family:Arial; padding:20px; }
+  .card { background:#222; padding:15px; margin-top:20px; border-radius:10px; }
+  input, textarea { width:100%; margin-top:8px; padding:10px; background:#222; border:1px solid #555; color:#fff; border-radius:8px; }
+  button { background:#f7d36a; color:#000; padding:10px 15px; border:none; border-radius:8px; margin-top:10px; cursor:pointer; font-weight:bold; }
+  button.delete { background:#d9534f; color:#fff; }
+  button.edit { background:#5bc0de; }
+</style>
+</head>
+<body>
+
+<h1>📤 Admin – Trabalhos (Upload ativo)</h1>
+
+<h2>➕ Nova publicação</h2>
+
+<input id="titulo" placeholder="Título">
+<textarea id="descricao" placeholder="Descrição"></textarea>
+<input id="imagem" type="file" accept="image/*">
+<input id="link_externo" placeholder="Link externo (opcional)">
+<button onclick="criar()">Salvar Publicação</button>
+
+<hr>
+
+<h2>📜 Publicações</h2>
+<div id="lista"></div>
+
+<script type="module">
+import { createClient } from "https://esm.sh/@supabase/supabase-js";
+
+const SUPABASE_URL = "COLOQUE_AQUI";
+const SUPABASE_ANON = "COLOQUE_AQUI";
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
+
+// Listar todas
+async function carregar() {
+    const lista = document.getElementById("lista");
+
+    const resp = await fetch("/api/trabalhos");
+    const dados = await resp.json();
+
+    lista.innerHTML = "";
+
+    dados.forEach(item => {
+        lista.innerHTML += `
+            <div class="card">
+                <b>${item.titulo}</b><br>
+                <small>ID: ${item.id}</small>
+                <p>${item.descricao || ""}</p>
+                ${item.imagem_url ? `<img src="${item.imagem_url}" style="max-width:200px;border-radius:10px;">` : ""}
+                <br><br>
+
+                <button class="edit" onclick='editar("${item.id}")'>Editar</button>
+                <button class="delete" onclick='deletar("${item.id}")'>Excluir</button>
+            </div>
+        `;
+    });
+}
+
+// Upload de imagem → retorna URL pública
+async function uploadImagem(arquivo) {
+    if (!arquivo) return null;
+
+    const nome = `img_${Date.now()}.png`;
+
+    const { error } = await supabase.storage
+        .from("public")
+        .upload(nome, arquivo);
+
+    if (error) {
+        alert("Erro no upload: " + error.message);
+        return null;
+    }
+
+    const { data } = supabase.storage
+        .from("public")
+        .getPublicUrl(nome);
+
+    return data.publicUrl;
+}
+
+// Criar publicação
+async function criar() {
+    const arquivo = document.getElementById("imagem").files[0];
+
+    const imageURL = await uploadImagem(arquivo);
+
+    const data = {
+        titulo: document.getElementById("titulo").value,
+        descricao: document.getElementById("descricao").value,
+        imagem_url: imageURL,
+        link_externo: document.getElementById("link_externo").value
+    };
+
+    await fetch("/api/trabalhos", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(data)
+    });
+
+    carregar();
+}
+
+// Editar
+async function editar(id) {
+    const novoTitulo = prompt("Novo título:");
+    const novaDescricao = prompt("Nova descrição:");
+    const novaImagem = prompt("Nova URL da imagem:");
+    const novoLink = prompt("Novo link externo:");
+
+    await fetch(`/api/trabalhos?id=${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            titulo: novoTitulo,
+            descricao: novaDescricao,
+            imagem_url: novaImagem,
+            link_externo: novoLink
+        })
+    });
+
+    carregar();
+}
+
+// Deletar
+async function deletar(id) {
+    if (!confirm("Excluir?")) return;
+
+    await fetch(`/api/trabalhos?id=${id}`, {
+        method: "DELETE"
+    });
+
+    carregar();
+}
+
+carregar();
+</script>
+
+</body>
+</html>
