@@ -1,1 +1,64 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meus Trabalhos</title>
 
+    <style>
+        body {
+            font-family: Arial;
+            padding: 20px;
+            background: #111;
+            color: #fff;
+        }
+        .card {
+            background: #222;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 10px;
+            border: 1px solid #444;
+        }
+        img {
+            max-width: 100%;
+            border-radius: 10px;
+            margin-top: 10px;
+        }
+        .titulo {
+            font-size: 22px;
+            font-weight: bold;
+            color: #f7d36a;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>✨ Trabalhos Publicados</h1>
+    <div id="lista"></div>
+
+    <script>
+        async function carregar() {
+            const lista = document.getElementById("lista");
+
+            const url = "/api/trabalhos"; // Vercel local
+            const resposta = await fetch(url);
+            const dados = await resposta.json();
+
+            lista.innerHTML = "";
+
+            dados.forEach(item => {
+                lista.innerHTML += `
+                    <div class="card">
+                        <div class="titulo">${item.titulo}</div>
+                        <p>${item.descricao || ""}</p>
+                        ${item.imagem_url ? `<img src="${item.imagem_url}">` : ""}
+                        ${item.link_externo ? `<p><a href="${item.link_externo}" target="_blank" style="color:#7bcfff">🔗 Abrir</a></p>` : ""}
+                    </div>
+                `;
+            });
+        }
+
+        carregar();
+    </script>
+</body>
+</html>
