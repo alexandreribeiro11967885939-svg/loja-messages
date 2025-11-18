@@ -1,1 +1,154 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin - Trabalhos</title>
 
+<style>
+  body {
+    background: #111;
+    color: #fff;
+    font-family: Arial;
+    padding: 20px;
+  }
+  .card {
+    background: #222;
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 10px;
+    border: 1px solid #444;
+  }
+  input, textarea {
+    width: 100%;
+    padding: 10px;
+    margin: 8px 0;
+    background: #222;
+    color: #fff;
+    border: 1px solid #555;
+    border-radius: 8px;
+  }
+  button {
+    background: #f7d36a;
+    color: #000;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 10px;
+  }
+  button.delete {
+    background: #d9534f;
+    color: #fff;
+  }
+  button.edit {
+    background: #5bc0de;
+    color: #000;
+  }
+</style>
+</head>
+<body>
+
+<h1>🔐 Painel Admin – Trabalhos</h1>
+
+<h2>➕ Criar nova publicação</h2>
+
+<input id="titulo" placeholder="Título">
+<textarea id="descricao" placeholder="Descrição"></textarea>
+<input id="imagem_url" placeholder="URL da imagem">
+<input id="link_externo" placeholder="Link externo">
+
+<button onclick="criar()">Salvar Publicação</button>
+
+<hr>
+
+<h2>📜 Publicações existentes</h2>
+<div id="lista"></div>
+
+<script>
+
+async function carregar() {
+    const lista = document.getElementById("lista");
+    const url = "/api/trabalhos";
+
+    const resposta = await fetch(url);
+    const dados = await resposta.json();
+
+    lista.innerHTML = "";
+
+    dados.forEach(item => {
+        lista.innerHTML += `
+        <div class="card">
+          <b>${item.titulo}</b><br>
+          <small>ID: ${item.id}</small>
+          <p>${item.descricao || ""}</p>
+          ${item.imagem_url ? `<img src="${item.imagem_url}" style="max-width:200px;border-radius:10px;">` : ""}
+          <br><br>
+
+          <button class="edit" onclick='editar("${item.id}", "${encodeURIComponent(item.titulo)}", "${encodeURIComponent(item.descricao || "")}", "${encodeURIComponent(item.imagem_url || "")}", "${encodeURIComponent(item.link_externo || "")}")'>
+            Editar
+          </button>
+
+          <button class="delete" onclick='deletar("${item.id}")'>Excluir</button>
+        </div>
+        `;
+    });
+}
+
+async function criar() {
+    const data = {
+        titulo: document.getElementById("titulo").value,
+        descricao: document.getElementById("descricao").value,
+        imagem_url: document.getElementById("imagem_url").value,
+        link_externo: document.getElementById("link_externo").value
+    };
+
+    await fetch("/api/trabalhos", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(data)
+    });
+
+    carregar();
+}
+
+async function deletar(id) {
+    if (!confirm("Tem certeza que quer excluir?")) return;
+
+    await fetch(`/api/trabalhos?id=${id}`, {
+        method: "DELETE"
+    });
+
+    carregar();
+}
+
+function editar(id, titulo, descricao, imagem_url, link_externo) {
+    titulo = decodeURIComponent(titulo);
+    descricao = decodeURIComponent(descricao);
+    imagem_url = decodeURIComponent(imagem_url);
+    link_externo = decodeURIComponent(link_externo);
+
+    const novoTitulo = prompt("Título:", titulo);
+    const novaDescricao = prompt("Descrição:", descricao);
+    const novaImagem = prompt("URL da imagem:", imagem_url);
+    const novoLink = prompt("Link externo:", link_externo);
+
+    fetch(`/api/trabalhos?id=${id}`, {
+      method: "PUT",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        titulo: novoTitulo,
+        descricao: novaDescricao,
+        imagem_url: novaImagem,
+        link_externo: novoLink
+      })
+    }).then(() => carregar());
+}
+
+carregar();
+
+</script>
+
+</body>
+</html>
